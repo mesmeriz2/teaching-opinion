@@ -4,35 +4,27 @@ import json
 import re
 import os
 import logging
-from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
+# 최신 안정 모델 목록 (업데이트 시 여기만 수정)
+CURATED_MODELS = [
+    {"name": "gemini-2.5-flash", "display_name": "Gemini 2.5 Flash (빠름 · 권장)"},
+    {"name": "gemini-2.5-pro",   "display_name": "Gemini 2.5 Pro (고품질)"},
+    {"name": "gemini-2.5-flash-lite", "display_name": "Gemini 2.5 Flash Lite (경량)"},
+]
+DEFAULT_MODEL = "gemini-2.5-flash"
+
 
 class GeminiService:
-    # 클래스 변수로 모델 목록 캐싱
-    _cached_available_models: Optional[Dict[str, str]] = None
     _cached_prompt_template: Optional[str] = None
-    
+
     def __init__(self, api_key: str):
         if not api_key:
             raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
-        
+
         genai.configure(api_key=api_key)
-        self.models = {
-            "gemini-pro": "gemini-pro-latest",
-            "gemini-pro-vision": "gemini-pro-vision",
-            "gemini-1.5-pro": "gemini-2.5-pro",
-            "gemini-1.5-flash": "gemini-2.5-flash",
-            "gemini-2.5-pro": "gemini-2.5-pro",
-            "gemini-2.5-flash": "gemini-2.5-flash",
-        }
-        
-        # 프롬프트 템플릿 미리 로드
         self._load_prompt_template()
-        
-        # 사용 가능한 모델 목록 확인 및 매핑
-        self._update_available_models()
     
     def _load_prompt_template(self) -> None:
         """프롬프트 템플릿을 메모리에 캐싱합니다."""
@@ -69,62 +61,17 @@ class GeminiService:
 
 JSON 형식으로만 응답해주세요. 다른 설명 없이 배열만 반환해주세요."""
     
-    def _update_available_models(self) -> None:
-        """사용 가능한 모델 목록을 확인하고 캐싱합니다."""
-        if GeminiService._cached_available_models is not None:
-            # 캐시된 모델 목록 사용
-            available_models = GeminiService._cached_available_models
-        else:
-            # 모델 목록 조회 및 캐싱
-            try:
-                available_models = {}
-                for model in genai.list_models():
-                    if 'generateContent' in model.supported_generation_methods:
-                        model_name = model.name.replace('models/', '')
-                        available_models[model_name] = model_name
-                GeminiService._cached_available_models = available_models
-                logger.info(f"사용 가능한 모델 {len(available_models)}개를 캐싱했습니다.")
-            except Exception as e:
-                logger.warning(f"모델 목록 확인 실패: {str(e)}. 기본 모델을 사용합니다.")
-                available_models = {}
-        
-        # 사용 가능한 모델로 업데이트
-        if available_models:
-            updated_models = {}
-            for key, default_value in self.models.items():
-                if default_value in available_models:
-                    updated_models[key] = default_value
-                else:
-                    # 부분 매칭 시도
-                    matched = False
-                    for available_name in available_models.keys():
-                        if default_value in available_name or available_name.endswith(default_value):
-                            updated_models[key] = available_name
-                            matched = True
-                            break
-                    if not matched:
-                        updated_models[key] = default_value
-            self.models = updated_models
-    
-    @classmethod
-    def get_available_models(cls) -> List[Dict[str, str]]:
-        """캐시된 사용 가능한 모델 목록을 반환합니다."""
-        if cls._cached_available_models is None:
-            return []
-        
-        models = []
-        for model_name, _ in cls._cached_available_models.items():
-            models.append({
-                "name": model_name,
-                "full_name": f"models/{model_name}",
-                "display_name": model_name
-            })
-        return models
-    
+    @staticmethod
+    def get_available_models() -> List[Dict[str, str]]:
+        """큐레이션된 최신 모델 목록을 반환합니다."""
+        return [
+            {"name": m["name"], "full_name": f"models/{m['name']}", "display_name": m["display_name"]}
+            for m in CURATED_MODELS
+        ]
+
     @classmethod
     def clear_cache(cls) -> None:
-        """캐시를 초기화합니다 (테스트용)."""
-        cls._cached_available_models = None
+        """프롬프트 캐시를 초기화합니다 (테스트용)."""
         cls._cached_prompt_template = None
 
     def generate_opinions(
@@ -159,41 +106,20 @@ JSON 형식으로만 응답해주세요. 다른 설명 없이 배열만 반환�
             raise Exception(f"의견 생성 중 오류가 발생했습니다: {error_msg}")
     
     def _get_model(self, model_name: str):
-        """모델을 초기화하고 반환합니다. 실패 시 대체 모델을 시도합니다."""
-        model_id = self.models.get(model_name, "gemini-2.5-flash")
-        
-        # 모델 이름에서 'models/' 접두사 제거
-        if model_id.startswith('models/'):
-            model_id = model_id.replace('models/', '')
-        
-        # 모델 초기화 시도 (우선순위: 요청된 모델 -> gemini-2.5-flash -> gemini-pro -> 첫 번째 사용 가능한 모델)
-        fallback_models = ["gemini-2.5-flash", "gemini-pro"]
-        
-        if model_id not in fallback_models:
-            fallback_models.insert(0, model_id)
-        
-        last_error = None
-        for attempt_model in fallback_models:
-            try:
-                model = genai.GenerativeModel(attempt_model)
-                if attempt_model != model_id:
-                    logger.info(f"모델 '{model_id}' 대신 '{attempt_model}'을 사용합니다.")
-                return model
-            except Exception as e:
-                last_error = e
-                continue
-        
-        # 모든 시도 실패 시 사용 가능한 모델 중 첫 번째 시도
-        if GeminiService._cached_available_models:
-            for available_model in GeminiService._cached_available_models.keys():
-                try:
-                    model = genai.GenerativeModel(available_model)
-                    logger.warning(f"대체 모델 '{available_model}'을 사용합니다.")
-                    return model
-                except Exception:
-                    continue
-        
-        raise Exception(f"모델 초기화 실패: {str(last_error)}")
+        """모델을 초기화하고 반환합니다. 실패 시 기본 모델로 폴백합니다."""
+        model_id = model_name.replace('models/', '') if model_name else DEFAULT_MODEL
+
+        # 큐레이션 목록에 없는 값이 넘어왔을 때 기본 모델로 교체
+        valid_names = {m["name"] for m in CURATED_MODELS}
+        if model_id not in valid_names:
+            logger.warning(f"알 수 없는 모델 '{model_id}', 기본 모델 '{DEFAULT_MODEL}'로 대체합니다.")
+            model_id = DEFAULT_MODEL
+
+        try:
+            return genai.GenerativeModel(model_id)
+        except Exception as e:
+            logger.warning(f"모델 '{model_id}' 초기화 실패, '{DEFAULT_MODEL}'로 재시도: {e}")
+            return genai.GenerativeModel(DEFAULT_MODEL)
     
     def _extract_response_text(self, response) -> Optional[str]:
         """응답 객체에서 텍스트를 추출합니다."""

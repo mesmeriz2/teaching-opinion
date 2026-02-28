@@ -29,23 +29,8 @@ class OpinionResponse(BaseModel):
 
 @router.get("/available-models")
 async def get_available_models():
-    """사용 가능한 Gemini 모델 목록을 반환합니다. 캐시된 목록을 사용합니다."""
-    try:
-        models = GeminiService.get_available_models()
-        if not models:
-            logger.warning("캐시된 모델 목록이 없습니다. 모델 목록을 다시 조회합니다.")
-            # 캐시가 없는 경우 서비스 재초기화로 모델 목록 갱신
-            global gemini_service
-            gemini_service = GeminiService(settings.gemini_api_key)
-            models = GeminiService.get_available_models()
-        
-        return {"models": models}
-    except Exception as e:
-        logger.error(f"모델 목록 조회 오류: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="모델 목록을 조회할 수 없습니다. API 키를 확인해주세요."
-        )
+    """최신 큐레이션 Gemini 모델 목록을 반환합니다."""
+    return {"models": GeminiService.get_available_models()}
 
 
 @router.post("/generate-opinions", response_model=OpinionResponse)

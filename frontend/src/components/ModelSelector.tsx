@@ -28,9 +28,9 @@ const ModelSelector = ({ modelName, onChange }: ModelSelectorProps) => {
         setError(err instanceof Error ? err.message : '모델 목록을 불러올 수 없습니다.')
         // 폴백 모델 목록
         setModels([
-          { name: 'gemini-2.5-flash', full_name: 'models/gemini-2.5-flash', display_name: 'Gemini 2.5 Flash' },
-          { name: 'gemini-2.5-pro', full_name: 'models/gemini-2.5-pro', display_name: 'Gemini 2.5 Pro' },
-          { name: 'gemini-pro', full_name: 'models/gemini-pro', display_name: 'Gemini Pro' },
+          { name: 'gemini-2.5-flash', full_name: 'models/gemini-2.5-flash', display_name: 'Gemini 2.5 Flash (빠름 · 권장)' },
+          { name: 'gemini-2.5-pro', full_name: 'models/gemini-2.5-pro', display_name: 'Gemini 2.5 Pro (고품질)' },
+          { name: 'gemini-2.5-flash-lite', full_name: 'models/gemini-2.5-flash-lite', display_name: 'Gemini 2.5 Flash Lite (경량)' },
         ])
       } finally {
         setIsLoading(false)
