@@ -1,0 +1,40 @@
+services:
+  backend:
+    networks:
+      - teacher-opinion-network
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: teacher-opinion-backend
+    ports:
+      - "8005:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: teacher-opinion-frontend
+    ports:
+      - "8087:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - teacher-opinion-network
+
+networks:
+  teacher-opinion-network:
+    driver: bridge
+
