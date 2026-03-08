@@ -253,6 +253,49 @@ body {
   background: var(--good-bg);
 }
 
+/* ─── App layout (responsive) ─── */
+.app-layout {
+  display: flex;
+  flex-direction: row;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--ink-dark);
+}
+
+.left-panel {
+  width: 360px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--ink-border);
+}
+
+.right-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .app-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .left-panel {
+    width: 100%;
+    flex-shrink: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--ink-border);
+    overflow-y: visible;
+  }
+
+  .right-panel {
+    flex: unset;
+    min-height: 50vh;
+    overflow: visible;
+  }
+}
+
 /* ─── Refresh button ─── */
 .refresh-btn {
   padding: 0.4rem 0.9rem;

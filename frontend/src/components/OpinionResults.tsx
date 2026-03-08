@@ -35,6 +35,7 @@ const OpinionResults = ({ opinions, onRefresh, isLoading }: OpinionResultsProps)
     return (
       <div
         style={{
+          minHeight: '200px',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -127,7 +128,7 @@ const OpinionResults = ({ opinions, onRefresh, isLoading }: OpinionResultsProps)
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
+    <div style={{ minHeight: '400px', height: '100%', display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
 
       {/* ── Header ── */}
       <div

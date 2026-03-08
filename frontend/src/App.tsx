@@ -98,25 +98,15 @@ const App = () => {
   })
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100dvh',
-        overflow: 'hidden',
-        background: 'var(--ink-dark)',
-      }}
-    >
+    <div className="app-layout">
       {/* ── LEFT: dark ink panel ── */}
       <div
-        className="ink-scroll"
+        className="ink-scroll left-panel"
         style={{
-          width: '360px',
-          flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
           overflowY: 'auto',
           background: 'var(--ink-mid)',
-          borderRight: '1px solid var(--ink-border)',
         }}
       >
         {/* Header */}
@@ -182,8 +172,8 @@ const App = () => {
 
       {/* ── RIGHT: cream paper panel ── */}
       <div
-        className="paper-panel"
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        className="paper-panel right-panel"
+        style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <OpinionResults
           opinions={opinions}
